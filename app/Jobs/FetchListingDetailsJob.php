@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Listing;
 use App\Notifications\NewListingNotification;
+use App\Providers\ListingProvider\ListingProviderFactory;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,80 +47,16 @@ class FetchListingDetailsJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Fetch the listing details page
-            $url = $this->listing->url;
+            // Get the provider for this listing
+            $provider = $this->listing->getProvider();
+            Log::info("Using provider {$provider->getName()} for listing {$this->listing->id}");
 
-            // Use a cache key to prevent hammering the server with requests
-            $cacheKey = 'listing_details_' . $this->listing->id;
+            // Fetch the listing details using the provider
+            $details = $provider->fetchListingDetails($this->listing);
 
-            // Try to get the response with retries
-            $response = $this->getWithRetries($url);
-
-            if ($response->successful()) {
-                $html = $response->body();
-                $crawler = new Crawler($html);
-
-                // Extract phone number
-                $phone = null;
-                $phoneElement = $crawler->filter('.info div:contains("Telefon:") a');
-                if ($phoneElement->count() > 0) {
-                    $phone = $phoneElement->text();
-                }
-
-                // Extract location
-                $city = null;
-                $region = null;
-                $locationElement = $crawler->filter('.info div:contains("Lokalizacja:") span');
-                if ($locationElement->count() > 0) {
-                    $location = $locationElement->text();
-                    $locationParts = explode(', ', $location);
-                    if (count($locationParts) > 1) {
-                        $city = $locationParts[0];
-                        $region = $locationParts[1];
-                    } else {
-                        $city = $location;
-                    }
-                }
-
-                // Extract condition
-                $condition = null;
-                $conditionElement = $crawler->filter('.info div:contains("Stan:") span');
-                if ($conditionElement->count() > 0) {
-                    $condition = $conditionElement->text();
-                }
-
-                // Extract listing date
-                $listingDate = null;
-                $dateElement = $crawler->filter('.date span strong:last-child');
-                if ($dateElement->count() > 0) {
-                    $dateText = $dateElement->text();
-                    try {
-                        $listingDate = \Carbon\Carbon::createFromFormat('Y-m-d', $dateText);
-                    } catch (\Exception $e) {
-                        // If date parsing fails, just leave it as null
-                        Log::warning("Failed to parse date for listing {$this->listing->id}: {$e->getMessage()}");
-                    }
-                }
-
-                // Extract gallery images
-                $galleryImages = [];
-                $galleryElements = $crawler->filter('.images.pswp-thumbnails div a');
-                $galleryElements->each(function (Crawler $element) use (&$galleryImages) {
-                    $href = $element->attr('href');
-                    if ($href) {
-                        $galleryImages[] = $href;
-                    }
-                });
-
+            if (!empty($details)) {
                 // Update the listing with the additional details
-                $this->listing->update([
-                    'phone_number' => $phone,
-                    'city' => $city,
-                    'region' => $region,
-                    'condition' => $condition,
-                    'listing_date' => $listingDate,
-                    'gallery_images' => !empty($galleryImages) ? $galleryImages : null,
-                ]);
+                $this->listing->update($details);
 
                 Log::info("Updated details for listing {$this->listing->id}");
 
@@ -134,7 +71,7 @@ class FetchListingDetailsJob implements ShouldQueue
                     }
                 }
             } else {
-                Log::error("Failed to fetch details for listing {$this->listing->id}: " . $response->status());
+                Log::error("Failed to fetch details for listing {$this->listing->id}");
             }
         } catch (\Exception $e) {
             Log::error("Error processing listing {$this->listing->id}: " . $e->getMessage());

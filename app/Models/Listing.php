@@ -24,6 +24,7 @@ class Listing extends Model
         'price',
         'url',
         'image_url',
+        'provider',
         'is_deleted',
         'phone_number',
         'city',
@@ -66,6 +67,11 @@ class Listing extends Model
             return $this->image_url;
         }
 
+        // Add the appropriate domain prefix based on the provider
+        if ($this->provider === 'armybazar') {
+            return $this->image_url; // armybazar.eu images already have the domain prefix
+        }
+
         return 'https://www.netgun.pl' . $this->image_url;
     }
 
@@ -84,7 +90,20 @@ class Listing extends Model
                 return $image;
             }
 
+            // Add the appropriate domain prefix based on the provider
+            if ($this->provider === 'armybazar') {
+                return $image; // armybazar.eu images already have the domain prefix
+            }
+
             return 'https://www.netgun.pl' . $image;
         }, $this->gallery_images);
+    }
+
+    /**
+     * Get the provider for this listing.
+     */
+    public function getProvider()
+    {
+        return \App\Providers\ListingProvider\ListingProviderFactory::getProvider($this->provider ?? 'netgun');
     }
 }

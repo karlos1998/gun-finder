@@ -20,6 +20,7 @@ class GunModel extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'provider',
         'first_sync_completed',
     ];
 
@@ -53,7 +54,6 @@ class GunModel extends Model
      */
     public function getSearchUrlAttribute(): string
     {
-        $query = str_replace(' ', '+', $this->name);
-        return "https://www.netgun.pl/wyszukiwanie?query={$query}";
+        return \App\Providers\ListingProvider\ListingProviderFactory::getProviderForGunModel($this)->getSearchUrl($this);
     }
 }
