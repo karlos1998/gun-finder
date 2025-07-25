@@ -34,6 +34,13 @@ class GunModelController extends Controller
             'name' => 'required|string|min:3|max:255',
         ]);
 
+        // Check if the user has reached the limit of 3 gun models
+        $userGunModelsCount = Auth::user()->gunModels()->count();
+        if ($userGunModelsCount >= 3) {
+            return redirect()->route('gun-models.index')
+                ->with('error', 'You can create a maximum of 3 gun models.');
+        }
+
         Auth::user()->gunModels()->create($validated);
 
         return redirect()->route('gun-models.index')

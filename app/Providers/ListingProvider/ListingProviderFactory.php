@@ -31,6 +31,20 @@ class ListingProviderFactory
      */
     public static function getProviderForGunModel(GunModel $gunModel): ListingProviderInterface
     {
-        return self::getProvider($gunModel->provider ?? 'netgun');
+        // Default to netgun provider since we no longer store provider in GunModel
+        return self::getProvider('netgun');
+    }
+
+    /**
+     * Get all available providers.
+     *
+     * @return array
+     */
+    public static function getAllProviders(): array
+    {
+        return [
+            'netgun' => new NetgunProvider(),
+            'armybazar' => new ArmybazarProvider(),
+        ];
     }
 }

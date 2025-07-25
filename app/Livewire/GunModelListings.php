@@ -19,8 +19,9 @@ class GunModelListings extends Component
     public $minPrice = '';
     public $maxPrice = '';
     public $sortBy = 'latest';
+    public $provider = '';
 
-    protected $queryString = ['viewMode', 'region', 'minPrice', 'maxPrice', 'sortBy'];
+    protected $queryString = ['viewMode', 'region', 'minPrice', 'maxPrice', 'sortBy', 'provider'];
 
     public function mount($gunModelId)
     {
@@ -43,6 +44,7 @@ class GunModelListings extends Component
         $this->region = '';
         $this->minPrice = '';
         $this->maxPrice = '';
+        $this->provider = '';
         $this->sortBy = 'latest';
         $this->resetPage();
     }
@@ -67,6 +69,11 @@ class GunModelListings extends Component
         $this->resetPage();
     }
 
+    public function updatedProvider()
+    {
+        $this->resetPage();
+    }
+
     public function render()
     {
         $gunModel = GunModel::findOrFail($this->gunModelId);
@@ -81,6 +88,11 @@ class GunModelListings extends Component
         // Apply region filter
         if (!empty($this->region)) {
             $query->where('region', $this->region);
+        }
+
+        // Apply provider filter
+        if (!empty($this->provider)) {
+            $query->where('provider', $this->provider);
         }
 
         // Apply price range filters
@@ -113,10 +125,19 @@ class GunModelListings extends Component
             ->sort()
             ->values();
 
+        // Get unique providers for the filter dropdown
+        $providers = $gunModel->listings()
+            ->whereNotNull('provider')
+            ->distinct()
+            ->pluck('provider')
+            ->sort()
+            ->values();
+
         return view('livewire.gun-model-listings', [
             'gunModel' => $gunModel,
             'listings' => $listings,
             'regions' => $regions,
+            'providers' => $providers,
         ]);
     }
 }

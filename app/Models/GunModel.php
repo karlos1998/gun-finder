@@ -20,7 +20,6 @@ class GunModel extends Model
     protected $fillable = [
         'user_id',
         'name',
-        'provider',
         'first_sync_completed',
     ];
 

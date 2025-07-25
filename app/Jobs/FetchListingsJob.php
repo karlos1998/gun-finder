@@ -43,72 +43,79 @@ class FetchListingsJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Get the provider for this gun model
-            $provider = ListingProviderFactory::getProviderForGunModel($this->gunModel);
-
-            Log::info("Using provider {$provider->getName()} for {$this->gunModel->name}");
-
             $allNewListings = [];
             $allDetailsJobs = [];
             $allCurrentListingIds = [];
 
-            // Fetch listings using the provider
-            $fetchedListings = $provider->fetchListings($this->gunModel);
+            // Get all available providers
+            $providers = ListingProviderFactory::getAllProviders();
 
-            Log::info("Fetched " . $fetchedListings->count() . " listings for {$this->gunModel->name}");
+            // Fetch listings from all providers
+            foreach ($providers as $providerName => $provider) {
+                Log::info("Using provider {$provider->getName()} for {$this->gunModel->name}");
 
-            $newListings = [];
-            $detailsJobs = [];
+                // Fetch listings using the provider
+                $fetchedListings = $provider->fetchListings($this->gunModel);
 
-            foreach ($fetchedListings as $fetchedListing) {
-                $listingId = $fetchedListing['listing_id'];
-                $allCurrentListingIds[] = $listingId;
+                Log::info("Fetched " . $fetchedListings->count() . " listings for {$this->gunModel->name} from {$provider->getName()}");
 
-                // Check if the listing exists in the database
-                $existingListing = Listing::where('listing_id', $listingId)->first();
+                $newListings = [];
+                $detailsJobs = [];
 
-                // Check if this gun model is already associated with the listing
-                $isAssociated = false;
-                if ($existingListing) {
-                    $isAssociated = $existingListing->gunModels()->where('gun_model_id', $this->gunModel->id)->exists();
+                foreach ($fetchedListings as $fetchedListing) {
+                    $listingId = $fetchedListing['listing_id'];
+                    $allCurrentListingIds[] = $listingId;
 
-                    if (!$isAssociated) {
-                        // If the listing exists but is not associated with this gun model, associate it
-                        Log::info("Associating existing listing {$listingId} with gun model {$this->gunModel->name}");
+                    // Check if the listing exists in the database
+                    $existingListing = Listing::where('listing_id', $listingId)->first();
+
+                    // Check if this gun model is already associated with the listing
+                    $isAssociated = false;
+                    if ($existingListing) {
+                        $isAssociated = $existingListing->gunModels()->where('gun_model_id', $this->gunModel->id)->exists();
+
+                        if (!$isAssociated) {
+                            // If the listing exists but is not associated with this gun model, associate it
+                            Log::info("Associating existing listing {$listingId} with gun model {$this->gunModel->name}");
+                        }
+                    }
+
+                    if ($existingListing) {
+                        // If the listing was marked as deleted, mark it as not deleted
+                        if ($existingListing->is_deleted) {
+                            $existingListing->update(['is_deleted' => false]);
+                        }
+
+                        // If the listing is not associated with this gun model, associate it
+                        if (!$isAssociated) {
+                            $this->gunModel->listings()->attach($existingListing->id);
+                        }
+                    } else {
+                        // Create a new listing with basic details
+                        $listing = Listing::create([
+                            'listing_id' => $listingId,
+                            'title' => $fetchedListing['title'],
+                            'description' => $fetchedListing['description'],
+                            'price' => $fetchedListing['price'],
+                            'url' => $fetchedListing['url'],
+                            'image_url' => $fetchedListing['image_url'],
+                            'provider' => $fetchedListing['provider'],
+                            'region' => $fetchedListing['region'] ?? null,
+                        ]);
+
+                        // Associate the listing with this gun model
+                        $this->gunModel->listings()->attach($listing->id);
+
+                        $newListings[] = $listing;
+
+                        // Add a job to fetch additional details for this listing
+                        $detailsJobs[] = new FetchListingDetailsJob($listing);
                     }
                 }
 
-                if ($existingListing) {
-                    // If the listing was marked as deleted, mark it as not deleted
-                    if ($existingListing->is_deleted) {
-                        $existingListing->update(['is_deleted' => false]);
-                    }
-
-                    // If the listing is not associated with this gun model, associate it
-                    if (!$isAssociated) {
-                        $this->gunModel->listings()->attach($existingListing->id);
-                    }
-                } else {
-                    // Create a new listing with basic details
-                    $listing = Listing::create([
-                        'listing_id' => $listingId,
-                        'title' => $fetchedListing['title'],
-                        'description' => $fetchedListing['description'],
-                        'price' => $fetchedListing['price'],
-                        'url' => $fetchedListing['url'],
-                        'image_url' => $fetchedListing['image_url'],
-                        'provider' => $fetchedListing['provider'],
-                        'region' => $fetchedListing['region'] ?? null,
-                    ]);
-
-                    // Associate the listing with this gun model
-                    $this->gunModel->listings()->attach($listing->id);
-
-                    $newListings[] = $listing;
-
-                    // Add a job to fetch additional details for this listing
-                    $detailsJobs[] = new FetchListingDetailsJob($listing);
-                }
+                // Add to our collections
+                $allNewListings = array_merge($allNewListings, $newListings);
+                $allDetailsJobs = array_merge($allDetailsJobs, $detailsJobs);
             }
 
             // Get all listings associated with this gun model
@@ -123,12 +130,8 @@ class FetchListingsJob implements ShouldQueue
             }
 
             // Log the number of new listings found
-            if (!empty($newListings)) {
-                Log::info("Found " . count($newListings) . " new listings for {$this->gunModel->name}");
-
-                // Add to our collections
-                $allNewListings = array_merge($allNewListings, $newListings);
-                $allDetailsJobs = array_merge($allDetailsJobs, $detailsJobs);
+            if (!empty($allNewListings)) {
+                Log::info("Found " . count($allNewListings) . " new listings for {$this->gunModel->name}");
 
                 // Dispatch a batch of jobs to fetch details for all new listings
                 if (!empty($allDetailsJobs)) {

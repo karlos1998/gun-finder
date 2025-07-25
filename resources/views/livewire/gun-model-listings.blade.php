@@ -37,12 +37,23 @@
                         <div class="bg-gray-50 p-4 rounded-lg mb-6">
                             <div class="flex flex-col md:flex-row gap-4 mb-4">
                                 <!-- Region Filter -->
-                                <div class="w-full md:w-1/4">
+                                <div class="w-full md:w-1/5">
                                     <label for="region" class="block text-sm font-medium text-gray-700 mb-1">Województwo</label>
                                     <select id="region" wire:model.live="region" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                                         <option value="">Wszystkie województwa</option>
                                         @foreach($regions as $regionOption)
                                             <option value="{{ $regionOption }}">{{ $regionOption }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <!-- Provider Filter -->
+                                <div class="w-full md:w-1/5">
+                                    <label for="provider" class="block text-sm font-medium text-gray-700 mb-1">Serwis</label>
+                                    <select id="provider" wire:model.live="provider" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                        <option value="">Wszystkie serwisy</option>
+                                        @foreach($providers as $providerOption)
+                                            <option value="{{ $providerOption }}">{{ $providerOption }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -140,6 +151,15 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
                                                     {{ $listing->condition }}
+                                                </span>
+                                            @endif
+
+                                            @if ($listing->provider)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                                    </svg>
+                                                    {{ $listing->provider }}
                                                 </span>
                                             @endif
                                         </div>
