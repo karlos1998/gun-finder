@@ -42,12 +42,27 @@ class FetchListingsJob implements ShouldQueue
     {
         try {
             // Get the search URL for the gun model
-            $url = $this->gunModel->search_url;
+            $baseUrl = $this->gunModel->search_url;
+            $currentUrl = $baseUrl;
+            $currentPage = 1;
+            $hasNextPage = true;
 
-            // Fetch the HTML content
-            $response = Http::get($url);
+            $allNewListings = [];
+            $allDetailsJobs = [];
+            $allCurrentListingIds = [];
 
-            if ($response->successful()) {
+            // Process all pages until there's no "Next" button
+            while ($hasNextPage) {
+                Log::info("Fetching page {$currentPage} for {$this->gunModel->name} from URL: {$currentUrl}");
+
+                // Fetch the HTML content
+                $response = Http::get($currentUrl);
+
+                if (!$response->successful()) {
+                    Log::error("Failed to fetch listings for {$this->gunModel->name} on page {$currentPage}: " . $response->status());
+                    break;
+                }
+
                 $html = $response->body();
 
                 // Parse the HTML content
@@ -57,7 +72,6 @@ class FetchListingsJob implements ShouldQueue
                 $items = $crawler->filter('.announcements-listing-container .listing-inner .col-12 .item');
 
                 $newListings = [];
-
                 $detailsJobs = [];
 
                 $items->each(function (Crawler $item) use (&$newListings, &$detailsJobs) {
@@ -107,42 +121,58 @@ class FetchListingsJob implements ShouldQueue
                     }
                 });
 
-                // Mark listings that no longer exist as deleted
+                // Collect listing IDs from this page
                 $currentListingIds = $items->each(function (Crawler $item) {
                     $itemId = $item->attr('id');
                     return str_replace('ogloszenie-', '', $itemId);
                 });
 
-                $this->gunModel->listings()
-                    ->where('is_deleted', false)
-                    ->whereNotIn('listing_id', $currentListingIds)
-                    ->update(['is_deleted' => true]);
+                // Add to our collections
+                $allNewListings = array_merge($allNewListings, $newListings);
+                $allDetailsJobs = array_merge($allDetailsJobs, $detailsJobs);
+                $allCurrentListingIds = array_merge($allCurrentListingIds, $currentListingIds);
 
-                // Log the number of new listings found
-                if (!empty($newListings)) {
-                    Log::info("Found " . count($newListings) . " new listings for {$this->gunModel->name}");
+                // Check if there's a next page
+                $nextPageLink = $crawler->filter('.pagination-container .pagination .page-item a[rel="next"]');
+                if ($nextPageLink->count() > 0) {
+                    $currentUrl = $nextPageLink->attr('href');
+                    $currentPage++;
+                } else {
+                    $hasNextPage = false;
+                    Log::info("Reached the last page ({$currentPage}) for {$this->gunModel->name}");
+                }
+            }
 
-                    // Dispatch a batch of jobs to fetch details for all new listings
-                    if (!empty($detailsJobs)) {
-                        Bus::batch($detailsJobs)
-                            ->name("fetch-details-{$this->gunModel->id}")
-                            ->allowFailures()
-                            ->onQueue('default')
-                            ->dispatch();
+            // Mark listings that no longer exist as deleted
+            $this->gunModel->listings()
+                ->where('is_deleted', false)
+                ->whereNotIn('listing_id', $allCurrentListingIds)
+                ->update(['is_deleted' => true]);
 
-                        Log::info("Dispatched batch job for fetching details for " . count($detailsJobs) . " new listings for {$this->gunModel->name}");
+            // Log the number of new listings found
+            if (!empty($allNewListings)) {
+                Log::info("Found " . count($allNewListings) . " new listings for {$this->gunModel->name} across {$currentPage} pages");
 
-                        // Update the flag to indicate that the first sync is completed if needed
-                        if (!$this->gunModel->first_sync_completed) {
-                            Log::info("First sync completed for {$this->gunModel->name}");
-                            $this->gunModel->update(['first_sync_completed' => true]);
-                        }
+                // Dispatch a batch of jobs to fetch details for all new listings
+                if (!empty($allDetailsJobs)) {
+                    Bus::batch($allDetailsJobs)
+                        ->name("fetch-details-{$this->gunModel->id}")
+                        ->allowFailures()
+                        ->onQueue('default')
+                        ->dispatch();
 
-                        // Notifications will be sent after details are fetched in FetchListingDetailsJob
+                    Log::info("Dispatched batch job for fetching details for " . count($allDetailsJobs) . " new listings for {$this->gunModel->name}");
+
+                    // Update the flag to indicate that the first sync is completed if needed
+                    if (!$this->gunModel->first_sync_completed) {
+                        Log::info("First sync completed for {$this->gunModel->name}");
+                        $this->gunModel->update(['first_sync_completed' => true]);
                     }
+
+                    // Notifications will be sent after details are fetched in FetchListingDetailsJob
                 }
             } else {
-                Log::error("Failed to fetch listings for {$this->gunModel->name}: " . $response->status());
+                Log::info("No new listings found for {$this->gunModel->name} across {$currentPage} pages");
             }
         } catch (\Exception $e) {
             Log::error("Error processing {$this->gunModel->name}: " . $e->getMessage());
