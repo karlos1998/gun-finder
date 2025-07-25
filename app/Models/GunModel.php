@@ -19,6 +19,16 @@ class GunModel extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'first_sync_completed',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'first_sync_completed' => 'boolean',
     ];
 
     /**

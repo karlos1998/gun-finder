@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\Listing;
+use App\Notifications\NewListingNotification;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Cache;
 
 class FetchListingDetailsJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * The listing instance.
@@ -120,6 +122,16 @@ class FetchListingDetailsJob implements ShouldQueue
                 ]);
 
                 Log::info("Updated details for listing {$this->listing->id}");
+
+                // Send notification to the user if this is not the first sync
+                $gunModel = $this->listing->gunModel;
+                if ($gunModel && $gunModel->first_sync_completed) {
+                    $user = $gunModel->user;
+                    if ($user) {
+                        $user->notify(new NewListingNotification($this->listing));
+                        Log::info("Sent notification for listing {$this->listing->id} to user {$user->id}");
+                    }
+                }
             } else {
                 Log::error("Failed to fetch details for listing {$this->listing->id}: " . $response->status());
             }
