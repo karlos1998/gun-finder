@@ -65,7 +65,7 @@ class Listing extends Model
             return $this->image_url;
         }
 
-        return 'https://netgun.pl' . $this->image_url;
+        return 'https://www.netgun.pl' . $this->image_url;
     }
 
     /**
@@ -83,7 +83,7 @@ class Listing extends Model
                 return $image;
             }
 
-            return 'https://netgun.pl' . $image;
+            return 'https://www.netgun.pl' . $image;
         }, $this->gallery_images);
     }
 }

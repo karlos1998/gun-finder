@@ -11,6 +11,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\DomCrawler\Crawler;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 
 class FetchListingDetailsJob implements ShouldQueue
 {
@@ -32,6 +34,11 @@ class FetchListingDetailsJob implements ShouldQueue
     }
 
     /**
+     * Maximum number of retries
+     */
+    protected $maxRetries = 3;
+
+    /**
      * Execute the job.
      */
     public function handle(): void
@@ -39,10 +46,12 @@ class FetchListingDetailsJob implements ShouldQueue
         try {
             // Fetch the listing details page
             $url = $this->listing->url;
-            // Ensure the URL has a leading slash
-            $url = !str_starts_with($url, '/') ? '/' . $url : $url;
-            $detailsUrl = 'https://netgun.pl' . $url;
-            $response = Http::get($detailsUrl);
+
+            // Use a cache key to prevent hammering the server with requests
+            $cacheKey = 'listing_details_' . $this->listing->id;
+
+            // Try to get the response with retries
+            $response = $this->getWithRetries($url);
 
             if ($response->successful()) {
                 $html = $response->body();
@@ -117,5 +126,52 @@ class FetchListingDetailsJob implements ShouldQueue
         } catch (\Exception $e) {
             Log::error("Error processing listing {$this->listing->id}: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Get a URL with retries and exponential backoff
+     *
+     * @param string $url
+     * @return \Illuminate\Http\Client\Response
+     */
+    protected function getWithRetries(string $url)
+    {
+        $attempt = 0;
+        $response = null;
+        $exception = null;
+
+        while ($attempt < $this->maxRetries) {
+            try {
+                // Add a delay with exponential backoff (except for the first attempt)
+                if ($attempt > 0) {
+                    $delay = pow(2, $attempt) * 1000; // milliseconds
+                    usleep($delay * 1000); // convert to microseconds
+                    Log::info("Retry {$attempt} for listing {$this->listing->id} after {$delay}ms delay");
+                }
+
+                $response = Http::timeout(30)->get($url);
+
+                // If successful, return the response
+                if ($response->successful()) {
+                    return $response;
+                }
+
+                // If we got a response but it's not successful, log it and continue retrying
+                Log::warning("Attempt {$attempt} failed for listing {$this->listing->id}: " . $response->status());
+            } catch (\Exception $e) {
+                // If an exception occurred, log it and continue retrying
+                $exception = $e;
+                Log::warning("Exception during attempt {$attempt} for listing {$this->listing->id}: " . $e->getMessage());
+            }
+
+            $attempt++;
+        }
+
+        // If we've exhausted all retries, return the last response or throw the last exception
+        if ($response) {
+            return $response;
+        }
+
+        throw $exception ?? new \Exception("Failed to fetch details after {$this->maxRetries} attempts");
     }
 }
