@@ -2,10 +2,10 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Listings for') }} {{ $gunModel->name }}
+                Ogłoszenia dla {{ $gunModel->name }}
             </h2>
             <a href="{{ $gunModel->search_url }}" target="_blank" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                {{ __('View on Netgun') }}
+                Zobacz na Netgun
             </a>
         </div>
     </x-slot>
@@ -15,13 +15,13 @@
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
                 @if ($listings->isEmpty())
                     <div class="text-center">
-                        <p class="text-gray-500">{{ __('No listings found for this gun model.') }}</p>
-                        <p class="text-gray-500 mt-2">{{ __('Listings will be automatically fetched every 30 minutes.') }}</p>
+                        <p class="text-gray-500">Nie znaleziono ogłoszeń dla tego modelu broni.</p>
+                        <p class="text-gray-500 mt-2">Ogłoszenia będą automatycznie pobierane co 30 minut.</p>
                     </div>
                 @else
                     <div class="space-y-6">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-medium text-gray-900">{{ __('Found') }} {{ $listings->count() }} {{ __('listings') }}</h3>
+                            <h3 class="text-lg font-medium text-gray-900">Znaleziono {{ $listings->count() }} ogłoszeń</h3>
                             <div class="flex space-x-2">
                                 <button id="grid-view" class="p-2 bg-gray-200 rounded hover:bg-gray-300 active:bg-gray-400">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -38,24 +38,30 @@
 
                         <div id="listings-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             @foreach ($listings as $listing)
-                                <div class="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 {{ $listing->is_deleted ? 'bg-red-50' : 'bg-white' }}">
+                                <div class="border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-200 {{ $listing->is_deleted ? 'bg-red-50' : 'bg-white' }}">
                                     <a href="{{ route('listings.show', [$gunModel, $listing]) }}" class="block">
                                         <div class="aspect-w-16 aspect-h-9 relative">
                                             @if ($listing->image_url)
-                                                <img src="{{ $listing->full_image_url }}" alt="{{ $listing->title }}" class="object-cover w-full h-48">
+                                                <img src="{{ $listing->full_image_url }}" alt="{{ $listing->title }}" class="object-cover w-full h-48 hover:opacity-90 transition-opacity">
                                             @else
                                                 <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                                                    <span class="text-gray-400">{{ __('No image') }}</span>
+                                                    <span class="text-gray-400">Brak zdjęcia</span>
                                                 </div>
                                             @endif
 
                                             @if ($listing->is_deleted)
                                                 <div class="absolute top-2 right-2">
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                        {{ __('Deleted') }}
+                                                        Usunięte
                                                     </span>
                                                 </div>
                                             @endif
+
+                                            <div class="absolute bottom-0 right-0 m-2">
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                                                    {{ $listing->price }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </a>
                                     <div class="p-4">
@@ -65,44 +71,51 @@
                                                     {{ $listing->title }}
                                                 </a>
                                             </h3>
-                                            <p class="text-lg font-bold text-indigo-600 ml-2">{{ $listing->price }}</p>
                                         </div>
 
-                                        @if ($listing->city || $listing->region)
-                                            <p class="text-sm text-gray-500 mt-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                                @if ($listing->city && $listing->region)
-                                                    {{ $listing->city }}, {{ $listing->region }}
-                                                @elseif ($listing->city)
-                                                    {{ $listing->city }}
-                                                @else
-                                                    {{ $listing->region }}
-                                                @endif
-                                            </p>
-                                        @endif
+                                        <div class="flex flex-wrap gap-2 mt-2">
+                                            @if ($listing->city || $listing->region)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    @if ($listing->city && $listing->region)
+                                                        {{ $listing->city }}, {{ $listing->region }}
+                                                    @elseif ($listing->city)
+                                                        {{ $listing->city }}
+                                                    @else
+                                                        {{ $listing->region }}
+                                                    @endif
+                                                </span>
+                                            @endif
 
-                                        @if ($listing->condition)
-                                            <p class="text-sm text-gray-500 mt-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                {{ $listing->condition }}
-                                            </p>
-                                        @endif
+                                            @if ($listing->condition)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    {{ $listing->condition }}
+                                                </span>
+                                            @endif
+                                        </div>
 
-                                        <div class="mt-2 text-sm text-gray-700 line-clamp-2">
+                                        <div class="mt-3 text-sm text-gray-700 line-clamp-2">
                                             {{ $listing->description }}
                                         </div>
 
                                         <div class="mt-4 flex justify-between items-center">
-                                            <a href="{{ route('listings.show', [$gunModel, $listing]) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                                                {{ __('View Details') }}
+                                            <a href="{{ route('listings.show', [$gunModel, $listing]) }}" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                                Zobacz szczegóły
                                             </a>
                                             <a href="{{ $listing->url }}" target="_blank" class="text-gray-500 hover:text-gray-700 text-sm">
-                                                {{ __('View on Netgun') }}
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
                                             </a>
                                         </div>
                                     </div>

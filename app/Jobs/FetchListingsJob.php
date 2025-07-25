@@ -50,7 +50,7 @@ class FetchListingsJob implements ShouldQueue
                 $crawler = new Crawler($html);
 
                 // Find all listing items
-                $items = $crawler->filter('.announcements-listing-container .item');
+                $items = $crawler->filter('.announcements-listing-container .listing-inner .col-12 .item');
 
                 $newListings = [];
 

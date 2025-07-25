@@ -38,7 +38,10 @@ class FetchListingDetailsJob implements ShouldQueue
     {
         try {
             // Fetch the listing details page
-            $detailsUrl = 'https://netgun.pl' . $this->listing->url;
+            $url = $this->listing->url;
+            // Ensure the URL has a leading slash
+            $url = !str_starts_with($url, '/') ? '/' . $url : $url;
+            $detailsUrl = 'https://netgun.pl' . $url;
             $response = Http::get($detailsUrl);
 
             if ($response->successful()) {

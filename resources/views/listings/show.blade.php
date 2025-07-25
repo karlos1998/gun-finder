@@ -6,10 +6,10 @@
             </h2>
             <div class="flex space-x-2">
                 <a href="{{ route('listings.index', $gunModel) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                    {{ __('Back to Listings') }}
+                    Powrót do ogłoszeń
                 </a>
                 <a href="{{ $listing->url }}" target="_blank" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    {{ __('View on Netgun') }}
+                    Zobacz na Netgun
                 </a>
             </div>
         </div>
@@ -26,7 +26,7 @@
                                 <img src="{{ $listing->full_image_url }}" alt="{{ $listing->title }}" class="w-full h-auto rounded-lg">
                             @else
                                 <div class="w-full h-64 bg-gray-200 flex items-center justify-center rounded-lg">
-                                    <span class="text-gray-400">{{ __('No image') }}</span>
+                                    <span class="text-gray-400">Brak zdjęcia</span>
                                 </div>
                             @endif
                         </div>
@@ -50,7 +50,7 @@
                                 <p class="text-xl font-semibold text-indigo-600">{{ $listing->price }}</p>
                                 @if ($listing->is_deleted)
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        {{ __('Deleted') }}
+                                        Usunięte
                                     </span>
                                 @endif
                             </div>
@@ -60,21 +60,21 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 @if ($listing->condition)
                                     <div>
-                                        <h3 class="text-sm font-medium text-gray-500">{{ __('Condition') }}</h3>
+                                        <h3 class="text-sm font-medium text-gray-500">Stan</h3>
                                         <p class="mt-1 text-sm text-gray-900">{{ $listing->condition }}</p>
                                     </div>
                                 @endif
 
                                 @if ($listing->listing_date)
                                     <div>
-                                        <h3 class="text-sm font-medium text-gray-500">{{ __('Listed On') }}</h3>
+                                        <h3 class="text-sm font-medium text-gray-500">Data ogłoszenia</h3>
                                         <p class="mt-1 text-sm text-gray-900">{{ $listing->listing_date->format('M d, Y') }}</p>
                                     </div>
                                 @endif
 
                                 @if ($listing->city || $listing->region)
                                     <div>
-                                        <h3 class="text-sm font-medium text-gray-500">{{ __('Location') }}</h3>
+                                        <h3 class="text-sm font-medium text-gray-500">Lokalizacja</h3>
                                         <p class="mt-1 text-sm text-gray-900">
                                             @if ($listing->city && $listing->region)
                                                 {{ $listing->city }}, {{ $listing->region }}
@@ -89,7 +89,7 @@
 
                                 @if ($listing->phone_number)
                                     <div>
-                                        <h3 class="text-sm font-medium text-gray-500">{{ __('Phone') }}</h3>
+                                        <h3 class="text-sm font-medium text-gray-500">Telefon</h3>
                                         <p class="mt-1 text-sm text-gray-900">
                                             <a href="tel:{{ $listing->phone_number }}" class="text-indigo-600 hover:text-indigo-900">
                                                 {{ $listing->phone_number }}
@@ -101,7 +101,7 @@
                         </div>
 
                         <div class="border-t border-gray-200 py-4">
-                            <h3 class="text-sm font-medium text-gray-500 mb-2">{{ __('Description') }}</h3>
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">Opis</h3>
                             <div class="prose max-w-none text-sm text-gray-900">
                                 {{ $listing->description }}
                             </div>
