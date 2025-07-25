@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Controllers\GunModelController;
+use App\Http\Controllers\ListingController;
 use Illuminate\Support\Facades\Route;
 
+// Redirect root to dashboard if authenticated, otherwise show login page
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
 
 Route::middleware([
@@ -11,7 +14,15 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+    // Dashboard
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
+
+    // Gun Models
+    Route::resource('gun-models', GunModelController::class)->except(['show', 'edit', 'update']);
+
+    // Listings
+    Route::get('/gun-models/{gunModel}/listings', [ListingController::class, 'index'])->name('listings.index');
+    Route::get('/gun-models/{gunModel}/listings/{listing}', [ListingController::class, 'show'])->name('listings.show');
 });
