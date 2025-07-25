@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Listing extends Model
 {
@@ -44,11 +45,11 @@ class Listing extends Model
     ];
 
     /**
-     * Get the gun model that owns the listing.
+     * Get the gun models associated with the listing.
      */
-    public function gunModel(): BelongsTo
+    public function gunModels()
     {
-        return $this->belongsTo(GunModel::class);
+        return $this->belongsToMany(GunModel::class);
     }
 
     /**

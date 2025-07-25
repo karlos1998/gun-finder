@@ -123,13 +123,14 @@ class FetchListingDetailsJob implements ShouldQueue
 
                 Log::info("Updated details for listing {$this->listing->id}");
 
-                // Send notification to the user if this is not the first sync
-                $gunModel = $this->listing->gunModel;
-                if ($gunModel && $gunModel->first_sync_completed) {
-                    $user = $gunModel->user;
-                    if ($user) {
-                        $user->notify(new NewListingNotification($this->listing));
-                        Log::info("Sent notification for listing {$this->listing->id} to user {$user->id}");
+                // Send notification to users if this is not the first sync
+                foreach ($this->listing->gunModels as $gunModel) {
+                    if ($gunModel->first_sync_completed) {
+                        $user = $gunModel->user;
+                        if ($user) {
+                            $user->notify(new NewListingNotification($this->listing));
+                            Log::info("Sent notification for listing {$this->listing->id} to user {$user->id}");
+                        }
                     }
                 }
             } else {

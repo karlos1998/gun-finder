@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\GunModel;
+use App\Models\Listing;
 use App\Notifications\NewListingNotification;
 use Illuminate\Bus\Batch;
 use Illuminate\Bus\Batchable;
@@ -79,13 +80,29 @@ class FetchListingsJob implements ShouldQueue
                     $itemId = $item->attr('id');
                     $listingId = str_replace('ogloszenie-', '', $itemId);
 
-                    // Check if the listing already exists
-                    $existingListing = $this->gunModel->listings()->where('listing_id', $listingId)->first();
+                    // Check if the listing exists in the database
+                    $existingListing = Listing::where('listing_id', $listingId)->first();
+
+                    // Check if this gun model is already associated with the listing
+                    $isAssociated = false;
+                    if ($existingListing) {
+                        $isAssociated = $existingListing->gunModels()->where('gun_model_id', $this->gunModel->id)->exists();
+
+                        if (!$isAssociated) {
+                            // If the listing exists but is not associated with this gun model, associate it
+                            Log::info("Associating existing listing {$listingId} with gun model {$this->gunModel->name}");
+                        }
+                    }
 
                     if ($existingListing) {
                         // If the listing was marked as deleted, mark it as not deleted
                         if ($existingListing->is_deleted) {
                             $existingListing->update(['is_deleted' => false]);
+                        }
+
+                        // If the listing is not associated with this gun model, associate it
+                        if (!$isAssociated) {
+                            $this->gunModel->listings()->attach($existingListing->id);
                         }
                     } else {
                         // Extract the basic listing details
@@ -105,7 +122,7 @@ class FetchListingsJob implements ShouldQueue
                             : null;
 
                         // Create a new listing with basic details
-                        $listing = $this->gunModel->listings()->create([
+                        $listing = Listing::create([
                             'listing_id' => $listingId,
                             'title' => $title,
                             'description' => $description,
@@ -113,6 +130,9 @@ class FetchListingsJob implements ShouldQueue
                             'url' => $url,
                             'image_url' => $imageUrl,
                         ]);
+
+                        // Associate the listing with this gun model
+                        $this->gunModel->listings()->attach($listing->id);
 
                         $newListings[] = $listing;
 
@@ -143,11 +163,16 @@ class FetchListingsJob implements ShouldQueue
                 }
             }
 
-            // Mark listings that no longer exist as deleted
-            $this->gunModel->listings()
+            // Get all listings associated with this gun model
+            $associatedListings = $this->gunModel->listings()
                 ->where('is_deleted', false)
                 ->whereNotIn('listing_id', $allCurrentListingIds)
-                ->update(['is_deleted' => true]);
+                ->get();
+
+            // Mark listings that no longer exist as deleted
+            foreach ($associatedListings as $listing) {
+                $listing->update(['is_deleted' => true]);
+            }
 
             // Log the number of new listings found
             if (!empty($allNewListings)) {

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GunModel extends Model
@@ -42,9 +43,9 @@ class GunModel extends Model
     /**
      * Get the listings for the gun model.
      */
-    public function listings(): HasMany
+    public function listings()
     {
-        return $this->hasMany(Listing::class);
+        return $this->belongsToMany(Listing::class);
     }
 
     /**
