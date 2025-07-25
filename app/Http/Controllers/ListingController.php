@@ -21,7 +21,6 @@ class ListingController extends Controller
 
         return view('listings.index', [
             'gunModel' => $gunModel,
-            'listings' => $gunModel->listings()->latest()->get(),
         ]);
     }
 
@@ -36,7 +35,7 @@ class ListingController extends Controller
         }
 
         // Check if the listing belongs to the gun model
-        if ($listing->gun_model_id !== $gunModel->id) {
+        if (!$listing->gunModels()->where('gun_model_id', $gunModel->id)->exists()) {
             abort(404);
         }
 
