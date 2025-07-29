@@ -224,6 +224,10 @@ class ArmybazarProvider implements ListingProviderInterface
         }
 
         $html = $response->body();
+
+        // Remove XML declaration and DOCTYPE before parsing
+        $html = preg_replace('/^<\?xml.*?\?>.*?<!DOCTYPE.*?>/s', '', $html);
+
         $crawler = new Crawler($html);
 
         // Extract phone number
@@ -266,54 +270,48 @@ class ArmybazarProvider implements ListingProviderInterface
         if ($gallerySection->count() > 0) {
             Log::info("Gallery section found for listing {$listing->id}");
             Log::info("Gallery section HTML: " . $gallerySection->outerHtml());
+
+            // Extract all links with class 'fancy' inside #inz_foto
+            $allGalleryLinks = $gallerySection->filter('a.fancy');
+            Log::info("Found {$allGalleryLinks->count()} gallery links for listing {$listing->id}");
+
+            // Extract all image URLs from the gallery section
+            $allGalleryLinks->each(function (Crawler $element, $i) use (&$galleryImages) {
+                $href = $element->attr('href');
+                if ($href) {
+                    Log::info("Gallery image {$i} found: {$href}");
+                    $galleryImages[] = $href;
+                }
+            });
+
+            // If no images were found, try a more general approach
+            if (empty($galleryImages)) {
+                Log::warning("No images found with fancy class, trying a more general approach");
+
+                // Try to get all links in the gallery section that have href attributes ending with image extensions
+                $allLinks = $gallerySection->filter('a[href$=".jpg"], a[href$=".jpeg"], a[href$=".png"], a[href$=".gif"]');
+                Log::info("Found {$allLinks->count()} links with image extensions");
+
+                $allLinks->each(function (Crawler $element, $i) use (&$galleryImages) {
+                    $href = $element->attr('href');
+                    if ($href) {
+                        Log::info("Image link {$i} found: {$href}");
+                        $galleryImages[] = $href;
+                    }
+                });
+            }
         } else {
             Log::warning("Gallery section not found for listing {$listing->id}");
         }
 
-        // Extract all links with class 'fancy' inside #inz_foto
-        $allGalleryLinks = $crawler->filter('#inz_foto a.fancy');
-        Log::info("Found {$allGalleryLinks->count()} gallery links for listing {$listing->id}");
-
-        // Extract the main image
-        $mainImage = $crawler->filter('#inz_foto a.fancy.bigimg');
-        if ($mainImage->count() > 0) {
-            $href = $mainImage->attr('href');
-            Log::info("Main image found: {$href}");
-            $galleryImages[] = $href;
-        } else {
-            Log::warning("Main image not found for listing {$listing->id}");
-        }
-
-        // Extract additional images
-        $additionalImages = $crawler->filter('#inz_foto a.fancy.img');
-        Log::info("Found {$additionalImages->count()} additional images for listing {$listing->id}");
-
-        $additionalImages->each(function (Crawler $element, $i) use (&$galleryImages) {
-            $href = $element->attr('href');
-            if ($href) {
-                Log::info("Additional image {$i} found: {$href}");
-                $galleryImages[] = $href;
-            }
-        });
-
-        // If no images were found with the specific classes, try a more general approach
-        if (empty($galleryImages)) {
-            Log::warning("No images found with specific classes, trying a more general approach");
-
-            // Try to get all links in the gallery section that have href attributes ending with image extensions
-            $allLinks = $crawler->filter('#inz_foto a[href$=".jpg"], #inz_foto a[href$=".jpeg"], #inz_foto a[href$=".png"], #inz_foto a[href$=".gif"]');
-            Log::info("Found {$allLinks->count()} links with image extensions");
-
-            $allLinks->each(function (Crawler $element, $i) use (&$galleryImages) {
-                $href = $element->attr('href');
-                if ($href) {
-                    Log::info("Image link {$i} found: {$href}");
-                    $galleryImages[] = $href;
-                }
-            });
-        }
-
         Log::info("Total gallery images found: " . count($galleryImages));
+
+        // Update the image_url with the first high-quality image if available
+        $imageUrl = null;
+        if (!empty($galleryImages)) {
+            $imageUrl = $galleryImages[0];
+            Log::info("Updating image_url with high-quality image: {$imageUrl}");
+        }
 
         return [
             'phone_number' => $phone,
@@ -321,7 +319,8 @@ class ArmybazarProvider implements ListingProviderInterface
             'region' => $region,
             'condition' => $condition,
             'listing_date' => $listingDate,
-            'gallery_images' => !empty($galleryImages) ? $galleryImages : null,
+            'gallery_images' => $galleryImages, // Always return the array, even if empty
+            'image_url' => $imageUrl, // Update the image_url with the first high-quality image
         ];
     }
 }
