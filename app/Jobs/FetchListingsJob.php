@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\GunModel;
 use App\Models\Listing;
 use App\Notifications\NewListingNotification;
+use App\Jobs\SendGroupedNotificationsJob;
 use App\Providers\ListingProvider\ListingProviderFactory;
 use Illuminate\Bus\Batch;
 use Illuminate\Bus\Batchable;
@@ -43,7 +44,7 @@ class FetchListingsJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            $allNewListings = [];
+            $allNewListings = collect();
             $allDetailsJobs = [];
             $allCurrentListingIds = [];
 
@@ -59,7 +60,7 @@ class FetchListingsJob implements ShouldQueue
 
                 Log::info("Fetched " . $fetchedListings->count() . " listings for {$this->gunModel->name} from {$provider->getName()}");
 
-                $newListings = [];
+                $newListings = collect();
                 $detailsJobs = [];
 
                 foreach ($fetchedListings as $fetchedListing) {
@@ -106,7 +107,7 @@ class FetchListingsJob implements ShouldQueue
                         // Associate the listing with this gun model
                         $this->gunModel->listings()->attach($listing->id);
 
-                        $newListings[] = $listing;
+                        $newListings->push($listing);
 
                         // Add a job to fetch additional details for this listing
                         $detailsJobs[] = new FetchListingDetailsJob($listing);
@@ -114,7 +115,7 @@ class FetchListingsJob implements ShouldQueue
                 }
 
                 // Add to our collections
-                $allNewListings = array_merge($allNewListings, $newListings);
+                $allNewListings = $allNewListings->concat($newListings);
                 $allDetailsJobs = array_merge($allDetailsJobs, $detailsJobs);
             }
 
@@ -130,8 +131,8 @@ class FetchListingsJob implements ShouldQueue
             }
 
             // Log the number of new listings found
-            if (!empty($allNewListings)) {
-                Log::info("Found " . count($allNewListings) . " new listings for {$this->gunModel->name}");
+            if (!$allNewListings->isEmpty()) {
+                Log::info("Found " . $allNewListings->count() . " new listings for {$this->gunModel->name}");
 
                 // Dispatch a batch of jobs to fetch details for all new listings
                 if (!empty($allDetailsJobs)) {
@@ -139,6 +140,13 @@ class FetchListingsJob implements ShouldQueue
                         ->name("fetch-details-{$this->gunModel->id}")
                         ->allowFailures()
                         ->onQueue('default')
+                        ->then(function (Batch $batch) use ($allNewListings) {
+                            // After all details are fetched, dispatch a job to send grouped notifications
+                            if (!$allNewListings->isEmpty()) {
+                                Log::info("Dispatching SendGroupedNotificationsJob for " . $allNewListings->count() . " new listings");
+                                SendGroupedNotificationsJob::dispatch($allNewListings);
+                            }
+                        })
                         ->dispatch();
 
                     Log::info("Dispatched batch job for fetching details for " . count($allDetailsJobs) . " new listings for {$this->gunModel->name}");
@@ -149,7 +157,8 @@ class FetchListingsJob implements ShouldQueue
                         $this->gunModel->update(['first_sync_completed' => true]);
                     }
 
-                    // Notifications will be sent after details are fetched in FetchListingDetailsJob
+                    // Notifications will be sent in a batch by SendGroupedNotificationsJob
+                    // after all details are fetched
                 }
             } else {
                 Log::info("No new listings found for {$this->gunModel->name}");
