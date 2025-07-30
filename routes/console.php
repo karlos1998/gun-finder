@@ -20,7 +20,4 @@ Artisan::command('fetch:listings', function () {
     $this->info('Batch job dispatched. Listings will be processed in the background.');
 })->purpose('Fetch listings from Netgun.pl for all gun models');
 
-// Schedule the fetch:listings command to run every 30 minutes
-Artisan::command('schedule:run-fetch-listings', function () {
-    $this->call('fetch:listings');
-})->purpose('Run the fetch:listings command (scheduled to run every 30 minutes)');
+\Illuminate\Support\Facades\Schedule::job(new FetchListingsBatchJob)->everythirtyMinutes();
