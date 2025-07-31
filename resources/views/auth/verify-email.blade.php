@@ -4,39 +4,39 @@
             <x-authentication-card-logo />
         </x-slot>
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            {{ __('Before continuing, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
+        <div class="mb-4 text-sm text-gray-600">
+            Przed kontynuowaniem, czy mógłbyś zweryfikować swój adres e-mail, klikając w link, który właśnie wysłaliśmy do Ciebie? Jeśli nie otrzymałeś wiadomości e-mail, chętnie wyślemy Ci kolejną.
         </div>
 
         @if (session('status') == 'verification-link-sent')
-            <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-                {{ __('A new verification link has been sent to the email address you provided in your profile settings.') }}
+            <div class="mb-4 font-medium text-sm text-green-600">
+                Nowy link weryfikacyjny został wysłany na adres e-mail podany w ustawieniach profilu.
             </div>
         @endif
 
-        <div class="mt-4 flex items-center justify-between">
+        <div class="mt-6 flex flex-col space-y-4">
             <form method="POST" action="{{ route('verification.send') }}">
                 @csrf
 
                 <div>
-                    <x-button type="submit">
-                        {{ __('Resend Verification Email') }}
+                    <x-button type="submit" class="w-full justify-center py-3 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700">
+                        Wyślij ponownie e-mail weryfikacyjny
                     </x-button>
                 </div>
             </form>
 
-            <div>
+            <div class="flex justify-center space-x-4 pt-4 border-t border-gray-200">
                 <a
                     href="{{ route('profile.show') }}"
-                    class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
+                    class="text-sm text-gray-600 hover:text-blue-600 underline"
                 >
-                    {{ __('Edit Profile') }}</a>
+                    Edytuj profil</a>
 
                 <form method="POST" action="{{ route('logout') }}" class="inline">
                     @csrf
 
-                    <button type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 ms-2">
-                        {{ __('Log Out') }}
+                    <button type="submit" class="text-sm text-gray-600 hover:text-blue-600 underline">
+                        Wyloguj się
                     </button>
                 </form>
             </div>

@@ -4,8 +4,8 @@
             <x-authentication-card-logo />
         </x-slot>
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}
+        <div class="mb-4 text-sm text-gray-600">
+            To jest bezpieczny obszar aplikacji. Proszę potwierdzić swoje hasło przed kontynuowaniem.
         </div>
 
         <x-validation-errors class="mb-4" />
@@ -14,13 +14,13 @@
             @csrf
 
             <div>
-                <x-label for="password" value="{{ __('Password') }}" />
+                <x-label for="password" value="Hasło" class="text-gray-700" />
                 <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="current-password" autofocus />
             </div>
 
-            <div class="flex justify-end mt-4">
-                <x-button class="ms-4">
-                    {{ __('Confirm') }}
+            <div class="flex items-center justify-center mt-6">
+                <x-button class="w-full justify-center py-3 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700">
+                    Potwierdź
                 </x-button>
             </div>
         </form>
