@@ -20,7 +20,11 @@ Route::middleware([
     })->name('dashboard');
 
     // Gun Models
-    Route::resource('gun-models', GunModelController::class)->except(['show', 'edit', 'update']);
+    Route::get('gun-models', function() {
+        return redirect()->route('dashboard');
+    })->name('');
+
+    Route::resource('gun-models', GunModelController::class)->except(['show', 'edit', 'update', 'index']);
 
     // Listings
     Route::get('/gun-models/{gunModel}/listings', [ListingController::class, 'index'])->name('listings.index');
