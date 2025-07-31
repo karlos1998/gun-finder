@@ -106,4 +106,5 @@ class Listing extends Model
     {
         return \App\Providers\ListingProvider\ListingProviderFactory::getProvider($this->provider ?? 'netgun');
     }
+
 }
