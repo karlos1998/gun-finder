@@ -64,7 +64,7 @@ class NewListingsGroupNotification extends Notification implements ShouldQueue
                 $message->line("Cena: {$listing->price}");
             }
 
-            $message->action("Zobacz ogłoszenie " . ($index + 1), $listing->url);
+            $message->action("Zobacz ogłoszenie " . ($index + 1), $listing->full_url);
         });
 
         // Add a link to view all listings for this gun model

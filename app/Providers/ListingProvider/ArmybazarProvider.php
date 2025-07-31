@@ -249,17 +249,24 @@ class ArmybazarProvider implements ListingProviderInterface
 
         // Extract listing date
         $listingDate = null;
-        $dateElement = $crawler->filter('.cendat .datum');
+        $dateElement = $crawler->filter('span.left:contains("Data dodania:")');
         if ($dateElement->count() > 0) {
             $dateText = $dateElement->text();
-            try {
-                // Format: DD.MM.YYYY\nHH:MM
-                $dateText = preg_replace('/\s+/', ' ', $dateText);
-                $listingDate = \Carbon\Carbon::createFromFormat('d.m.Y H:i', $dateText);
-            } catch (\Exception $e) {
-                // If date parsing fails, just leave it as null
-                Log::warning("Failed to parse date for listing {$listing->id}: {$e->getMessage()}");
+            if (preg_match('/Data dodania:\s*(\d{2}\.\d{2}\.\d{4}),\s*(\d{2}:\d{2})/', $dateText, $matches)) {
+                try {
+                    // Format: DD.MM.YYYY, HH:MM
+                    $dateStr = $matches[1] . ' ' . $matches[2];
+                    $listingDate = \Carbon\Carbon::createFromFormat('d.m.Y H:i', $dateStr);
+                    Log::info("Successfully parsed date for listing {$listing->id}: {$dateStr}");
+                } catch (\Exception $e) {
+                    // If date parsing fails, just leave it as null
+                    Log::warning("Failed to parse date for listing {$listing->id}: {$e->getMessage()}");
+                }
+            } else {
+                Log::warning("Failed to extract date from text: {$dateText}");
             }
+        } else {
+            Log::warning("Date element not found for listing {$listing->id}");
         }
 
         // Extract gallery images
