@@ -13,8 +13,7 @@ class GunModelController extends Controller
      */
     public function index()
     {
-        $gunModels = Auth::user()->gunModels()->latest()->get();
-        return view('gun-models.index', compact('gunModels'));
+        return redirect()->route('dashboard');
     }
 
     /**
@@ -37,14 +36,14 @@ class GunModelController extends Controller
         // Check if the user has reached the limit of 3 gun models
         $userGunModelsCount = Auth::user()->gunModels()->count();
         if ($userGunModelsCount >= 3) {
-            return redirect()->route('gun-models.index')
-                ->with('error', 'You can create a maximum of 3 gun models.');
+            return redirect()->route('dashboard')
+                ->with('error', 'Możesz utworzyć maksymalnie 3 modele broni.');
         }
 
         Auth::user()->gunModels()->create($validated);
 
-        return redirect()->route('gun-models.index')
-            ->with('success', 'Gun model created successfully.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Model broni został utworzony pomyślnie.');
     }
 
     /**
@@ -59,7 +58,7 @@ class GunModelController extends Controller
 
         $gunModel->delete();
 
-        return redirect()->route('gun-models.index')
-            ->with('success', 'Gun model deleted successfully.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Model broni został usunięty pomyślnie.');
     }
 }
