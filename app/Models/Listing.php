@@ -64,12 +64,18 @@ class Listing extends Model
 
         // Check if the URL already has a domain prefix
         if (str_starts_with($this->image_url, 'http')) {
+            // For armybazar provider, route HTTP images through our proxy
+            if ($this->provider === 'armybazar' && str_starts_with($this->image_url, 'http:')) {
+                return route('image.proxy', ['url' => $this->image_url]);
+            }
             return $this->image_url;
         }
 
         // Add the appropriate domain prefix based on the provider
         if ($this->provider === 'armybazar') {
-            return $this->image_url; // armybazar.eu images already have the domain prefix
+            // For armybazar provider, route HTTP images through our proxy
+            $fullUrl = 'http://www.armybazar.eu' . $this->image_url;
+            return route('image.proxy', ['url' => $fullUrl]);
         }
 
         return 'https://www.netgun.pl' . $this->image_url;
@@ -87,12 +93,18 @@ class Listing extends Model
         return array_map(function ($image) {
             // Check if the URL already has a domain prefix
             if (str_starts_with($image, 'http')) {
+                // For armybazar provider, route HTTP images through our proxy
+                if ($this->provider === 'armybazar' && str_starts_with($image, 'http:')) {
+                    return route('image.proxy', ['url' => $image]);
+                }
                 return $image;
             }
 
             // Add the appropriate domain prefix based on the provider
             if ($this->provider === 'armybazar') {
-                return $image; // armybazar.eu images already have the domain prefix
+                // For armybazar provider, route HTTP images through our proxy
+                $fullUrl = 'http://www.armybazar.eu' . $image;
+                return route('image.proxy', ['url' => $fullUrl]);
             }
 
             return 'https://www.netgun.pl' . $image;
