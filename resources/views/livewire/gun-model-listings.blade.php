@@ -178,6 +178,15 @@
                                                     {{ $listing->provider }}
                                                 </span>
                                             @endif
+
+                                            @if ($listing->listing_date)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                    {{ $listing->listing_date->format('d.m.Y') }}
+                                                </span>
+                                            @endif
                                         </div>
 
                                         <div class="mt-3 text-sm text-gray-700 line-clamp-2">
