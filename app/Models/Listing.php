@@ -119,4 +119,24 @@ class Listing extends Model
         return \App\Providers\ListingProvider\ListingProviderFactory::getProvider($this->provider ?? 'netgun');
     }
 
+    /**
+     * Get the full URL for this listing.
+     */
+    public function getFullUrlAttribute(): string
+    {
+        // If the listing has a direct URL, use that
+        if ($this->url) {
+            return $this->url;
+        }
+
+        // Otherwise, try to generate a URL to the listing detail page
+        // This requires a gun model, so we'll use the first one if available
+        $gunModel = $this->gunModels->first();
+        if ($gunModel) {
+            return route('listings.show', [$gunModel, $this]);
+        }
+
+        // Fallback to the listings index page
+        return url('/');
+    }
 }
