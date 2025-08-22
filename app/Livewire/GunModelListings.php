@@ -112,7 +112,7 @@ class GunModelListings extends Component
         if ($this->sortBy === 'price_asc') {
             $query->orderByRaw("CAST(REPLACE(REPLACE(price, ' zł', ''), ',', '.') AS DECIMAL(10,2)) ASC");
         } else {
-            $query->latest();
+            $query->orderBy('listing_date', 'desc');
         }
 
         $listings = $query->paginate(100);
