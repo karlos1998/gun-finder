@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Karlos3098\SimplyConnectLaravelNotifications\Services\SimplyConnectMessage;
 
 class NewListingsGroupNotification extends Notification implements ShouldQueue
 {
@@ -43,7 +44,7 @@ class NewListingsGroupNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'simply-connect'];
     }
 
     /**
@@ -94,5 +95,16 @@ class NewListingsGroupNotification extends Notification implements ShouldQueue
                 ];
             })->toArray(),
         ];
+    }
+
+    public function toSimplyConnect(object $notifiable): SimplyConnectMessage
+    {
+        return (new SimplyConnectMessage)
+            ->phoneNumber("+48884167733")
+            ->line("Gun Finder - nowe ogłoszenie")
+            ->line("Kategoria: {$this->gunModel->name}")
+            ->line("Ogłoszenie: {$this->listings->first()->title}")
+            ->line("Cena: {$this->listings->first()->price}")
+            ->line("Link: {$this->listings->first()->full_url}");
     }
 }
